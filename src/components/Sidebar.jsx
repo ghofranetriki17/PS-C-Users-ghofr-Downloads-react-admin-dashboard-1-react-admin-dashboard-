@@ -1,33 +1,13 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   Dumbbell, Building2, Users, CalendarDays, LayoutDashboard,
-  Settings, ChevronDown, Package, User, Wrench
+  Settings, ChevronDown, Package, User, Wrench, Sliders, Video
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 
 const NAV = [
   { label: 'Dashboard', to: '/', icon: <LayoutDashboard className="h-4 w-4" /> },
-
-/*  {
-    label: 'Content',
-    icon: <Package className="h-4 w-4" />,
-    children: [
-      { label: 'Categories', to: '/categories' },
-      { label: 'Promotions', to: '/promotions' },
-      { label: 'Shop Items', to: '/shop-items' },
-      { label: 'Benefits', to: '/benefits' },
-    ],
-  },*/
-
-/*  {
-    label: 'Workouts',
-    icon: <Dumbbell className="h-4 w-4" />,
-    children: [
-      { label: 'All Workouts', to: '/workouts' },
-      { label: 'Create Workout', to: '/workouts/create' },
-    ],
-  },*/
 
   {
     label: 'Machines',
@@ -44,15 +24,15 @@ const NAV = [
     icon: <Building2 className="h-4 w-4" />,
     children: [
       { label: 'All Branches', to: '/branches' },
-      { label: 'Create Branch', to: '/branches/create' },
     ],
   },
-{
-  label: 'Availabilities',
-  to: '/availabilities',
-  icon: <CalendarDays className="h-4 w-4" />,
-}
-,
+
+  {
+    label: 'Availabilities',
+    to: '/availabilities',
+    icon: <CalendarDays className="h-4 w-4" />,
+  },
+
   {
     label: 'Sessions',
     icon: <CalendarDays className="h-4 w-4" />,
@@ -62,14 +42,14 @@ const NAV = [
     ],
   },
 
- {
-  label: 'Coaches',
-  icon: <Users className="h-4 w-4" />,
-  children: [
-    { label: 'All Coaches', to: '/coaches' },
-    { label: 'Coach Availabilities', to: '/coach-availabilities' },
-  ],
-},
+  {
+    label: 'Coaches',
+    icon: <Users className="h-4 w-4" />,
+    children: [
+      { label: 'All Coaches', to: '/coaches' },
+      { label: 'Coach Availabilities', to: '/coach-availabilities' },
+    ],
+  },
 
   {
     label: 'Users',
@@ -80,7 +60,24 @@ const NAV = [
     ],
   },
 
-  { label: 'Settings', to: '/settings', icon: <Settings className="h-4 w-4" /> },
+  // ✅ Ajout du menu Videos
+  { 
+    label: 'Videos', 
+    to: '/videos', 
+    icon: <Video className="h-4 w-4" /> 
+  },
+
+  { 
+    label: 'Paramètres', 
+    to: '/parametres', 
+    icon: <Sliders className="h-4 w-4" /> 
+  },
+
+  { 
+    label: 'Settings', 
+    to: '/settings', 
+    icon: <Settings className="h-4 w-4" /> 
+  },
 ]
 
 export default function Sidebar({ open, onClose }) {
@@ -175,8 +172,6 @@ export default function Sidebar({ open, onClose }) {
             )
           })}
         </nav>
-
-      
       </aside>
     </>
   )

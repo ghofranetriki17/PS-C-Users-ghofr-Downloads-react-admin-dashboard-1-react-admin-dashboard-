@@ -20,7 +20,7 @@ export default function Machines() {
   // Form data
   const [formData, setFormData] = useState({
     name: '',
-    type: '',             // requis backend
+    type: '',
     description: '',
     branch_id: '',
     category_ids: [],
@@ -28,10 +28,10 @@ export default function Machines() {
     video_url: ''
   })
 
-  // Gestion upload en cours
+  // Upload state
   const [isUploadingImage, setIsUploadingImage] = useState(false)
 
-  // Charges: uniquement IDs
+  // Charges
   const [selectedChargeIds, setSelectedChargeIds] = useState([])
   const [newChargeName, setNewChargeName] = useState('')
   const [newChargeWeight, setNewChargeWeight] = useState('')
@@ -40,19 +40,23 @@ export default function Machines() {
   const [selectedMachineForDuplicate, setSelectedMachineForDuplicate] = useState('')
   const [targetBranchId, setTargetBranchId] = useState('')
 
+  // New category
   const [newCategoryName, setNewCategoryName] = useState('')
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => { 
+    loadData() 
+  }, [])
 
   const loadData = async () => {
     try {
       setLoading(true)
       const [machinesRes, categoriesRes, branchesRes, chargesRes] = await Promise.all([
-        machinesAPI.list(),         // backend with('charges','categories','branch')
+        machinesAPI.list(),
         categoriesAPI.list(),
         branchesAPI.list(),
         chargesAPI.list()
       ])
+      
       setData(machinesRes.data || machinesRes || [])
       setCategories(categoriesRes.data || categoriesRes || [])
       setBranches(branchesRes.data || branchesRes || [])
@@ -60,7 +64,7 @@ export default function Machines() {
       setError('')
     } catch (e) {
       console.error('Error loading data:', e)
-      setError('Failed to load data')
+      setError('Failed to load data: ' + (e.response?.data?.message || e.message))
     } finally {
       setLoading(false)
     }
@@ -69,7 +73,11 @@ export default function Machines() {
   // Search
   const filteredData = useMemo(() => {
     const q = (searchTerm || '').toLowerCase()
-    return (data || []).filter(m => (m.name || '').toLowerCase().includes(q))
+    return (data || []).filter(m => 
+      (m.name || '').toLowerCase().includes(q) ||
+      (m.type || '').toLowerCase().includes(q) ||
+      (m.branch?.name || '').toLowerCase().includes(q)
+    )
   }, [data, searchTerm])
 
   // Group by branch name
@@ -81,12 +89,15 @@ export default function Machines() {
     }, {})
   }, [filteredData])
 
-  // Unique machines (by name) for duplicate
+  // Unique machines for duplicate
   const uniqueMachines = useMemo(() => {
     const seen = new Set()
     const arr = []
     for (const m of data) {
-      if (!seen.has(m.name)) { seen.add(m.name); arr.push(m) }
+      if (!seen.has(m.name)) { 
+        seen.add(m.name); 
+        arr.push(m) 
+      }
     }
     return arr
   }, [data])
@@ -125,7 +136,7 @@ export default function Machines() {
       setNewCategoryName('')
     } catch (e) {
       console.error('Failed to create category:', e)
-      setError('Failed to create category')
+      setError('Failed to create category: ' + (e.response?.data?.message || e.message))
     }
   }
 
@@ -147,7 +158,7 @@ export default function Machines() {
       setNewChargeWeight('')
     } catch (e) {
       console.error('Failed to create charge:', e)
-      setError('Failed to create charge')
+      setError('Failed to create charge: ' + (e.response?.data?.message || e.message))
     }
   }
 
@@ -189,11 +200,11 @@ export default function Machines() {
       await loadData()
     } catch (e) {
       console.error('Failed to delete machine:', e)
-      setError('Failed to delete machine')
+      setError('Failed to delete machine: ' + (e.response?.data?.message || e.message))
     }
   }
 
-  // === UPLOAD IMAGE ===
+  // Image upload
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -208,7 +219,6 @@ export default function Machines() {
       const res = await fetch('/api/upload-image', {
         method: 'POST',
         headers: {
-          // ajoute ton bearer si ton endpoint est protégé
           ...(localStorage.getItem('token')
             ? { Authorization: `Bearer ${localStorage.getItem('token')}` }
             : {}),
@@ -221,7 +231,6 @@ export default function Machines() {
         throw new Error(json?.message || 'Upload failed')
       }
 
-      // On met à jour l’URL d’image du formulaire
       setFormData(prev => ({ ...prev, image_url: json.data.url }))
     } catch (err) {
       console.error('Image upload error:', err)
@@ -231,68 +240,64 @@ export default function Machines() {
     }
   }
 
-  // ---- Persist charges (sync pivot) ----
-  const persistChargesForMachine = async (machineId) => {
-    await machineChargeAPI.sync(machineId, selectedChargeIds)
-  }
-
-const handleSubmit = async (e) => {
-  e.preventDefault()
-  if (!formData.name.trim() || !formData.branch_id || !formData.type.trim()) {
-    setError('Name, Type et Salle sont requis.')
-    return
-  }
-
-  try {
-    setSubmitting(true)
-    let saved = null
-
-    // Prepare the complete payload including charges
-    const payload = {
-      ...formData,
-      charge_ids: selectedChargeIds // Make sure to include charges in the payload
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!formData.name.trim() || !formData.branch_id || !formData.type.trim()) {
+      setError('Name, Type et Salle sont requis.')
+      return
     }
 
-    if (editingMachine) {
-      const res = await machinesAPI.update(editingMachine.id, payload)
-      saved = res?.data || res || editingMachine
-    } else {
-      const res = await machinesAPI.create(payload)
-      saved = res?.data || res
-    }
-
-    const machineId = saved?.id ?? editingMachine?.id
-    if (!machineId) throw new Error('No machine ID after save')
-
-    // Also update the machine with the selected charges
-    await persistChargesForMachine(machineId)
-
-    await loadData()
-    resetForm()
-    setShowForm(false)
-    setError('')
-  } catch (e) {
-    console.error('Failed to save machine:', e)
-    
-    // Handle validation errors specifically
-    if (e?.response?.status === 422) {
-      const validationErrors = e.response.data.errors
-      let errorMessage = 'Validation errors: '
+    try {
+      setSubmitting(true)
       
-      // Format validation errors for display
-      Object.keys(validationErrors).forEach(key => {
-        errorMessage += `${key}: ${validationErrors[key].join(', ')}. `
-      })
+      // Prepare the payload exactly as backend expects
+      const payload = {
+        name: formData.name.trim(),
+        type: formData.type.trim(),
+        branch_id: formData.branch_id,
+        description: formData.description || '',
+        image_url: formData.image_url || '',
+        video_url: formData.video_url || '',
+        category_ids: formData.category_ids,
+        charge_ids: selectedChargeIds // This is the key field
+      }
+
+      let saved = null
+
+      if (editingMachine) {
+        const res = await machinesAPI.update(editingMachine.id, payload)
+        saved = res.data
+      } else {
+        const res = await machinesAPI.create(payload)
+        saved = res.data
+      }
+
+      await loadData()
+      resetForm()
+      setShowForm(false)
+      setError('')
       
-      setError(errorMessage)
-    } else {
-      const msg = e?.response?.data?.message || e?.response?.data?.error || 'Failed to save machine'
-      setError(msg)
+    } catch (e) {
+      console.error('Failed to save machine:', e)
+      
+      if (e?.response?.status === 422) {
+        const validationErrors = e.response.data.errors
+        let errorMessage = 'Validation errors: '
+        
+        Object.keys(validationErrors).forEach(key => {
+          errorMessage += `${key}: ${validationErrors[key].join(', ')}. `
+        })
+        
+        setError(errorMessage)
+      } else {
+        const msg = e?.response?.data?.message || 'Failed to save machine'
+        setError(msg)
+      }
+    } finally {
+      setSubmitting(false)
     }
-  } finally {
-    setSubmitting(false)
   }
-}
+
   const handleDuplicate = async () => {
     if (!selectedMachineForDuplicate || !targetBranchId) return
     const originalMachine = data.find(m => String(m.id) === String(selectedMachineForDuplicate))
@@ -305,17 +310,13 @@ const handleSubmit = async (e) => {
       branch_id: targetBranchId,
       category_ids: originalMachine.categories?.map(c => c.id) || [],
       image_url: originalMachine.image_url,
-      video_url: originalMachine.video_url
+      video_url: originalMachine.video_url,
+      charge_ids: originalMachine.charges?.map(c => c.id) || []
     }
 
     try {
       setSubmitting(true)
-      const created = await machinesAPI.create(payload)
-      const newMachine = created?.data || created
-
-      const originalChargeIds = originalMachine.charges?.map(c => c.id) || []
-      await machineChargeAPI.sync(newMachine.id, originalChargeIds)
-
+      await machinesAPI.create(payload)
       await loadData()
       setShowDuplicateModal(false)
       setSelectedMachineForDuplicate('')
@@ -330,8 +331,27 @@ const handleSubmit = async (e) => {
     }
   }
 
-  if (loading) return <div className="p-4">Chargement...</div>
-  if (error) return <div className="p-4 text-red-400">{error}</div>
+  if (loading) return <div className="p-4 text-center">Chargement...</div>
+  
+  if (error && !showForm) return (
+    <div className="p-4">
+      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        {error}
+        <button 
+          onClick={() => setError('')} 
+          className="float-right text-red-700 hover:text-red-900"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <button 
+        onClick={loadData}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+      >
+        Réessayer
+      </button>
+    </div>
+  )
 
   return (
     <div className="space-y-6 p-6">
@@ -367,6 +387,13 @@ const handleSubmit = async (e) => {
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
 
       {/* Machines grouped by branch */}
       <div className="space-y-4">
@@ -569,6 +596,12 @@ const handleSubmit = async (e) => {
                 </button>
               </div>
 
+              {error && (
+                <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                  {error}
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -626,7 +659,7 @@ const handleSubmit = async (e) => {
                 {/* Image upload + preview */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Image *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Image</label>
                     <input
                       type="file"
                       accept="image/*"
@@ -638,9 +671,8 @@ const handleSubmit = async (e) => {
                     )}
                   </div>
 
-                    {/* Afficher l’URL en lecture (non obligatoire) */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">URL de l'image (lecture)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">URL de l'image</label>
                     <input
                       type="url"
                       name="image_url"

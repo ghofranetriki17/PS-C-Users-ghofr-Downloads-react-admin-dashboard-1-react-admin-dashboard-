@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-export const API_BASE_URL = 'http://172.20.10.2:8000/api' // ← ton IP
+export const API_BASE_URL = 'http://172.20.10.2:8000/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -25,18 +25,20 @@ api.interceptors.request.use((config) => {
 // Auth endpoints
 export const authAPI = {
   async login(payload) {
-    // POST /login => { user, token }
-    return api.post('/login', payload)
+    const { data } = await api.post('/login', payload)
+    return data
   },
   async register(payload) {
-    // POST /register => { user, token }
-    return api.post('/register', payload)
+    const { data } = await api.post('/register', payload)
+    return data
   },
   async me() {
-    return api.get('/user')
+    const { data } = await api.get('/user')
+    return data
   },
   async logout() {
-    return api.post('/logout')
+    const { data } = await api.post('/logout')
+    return data
   },
 }
 
@@ -46,17 +48,13 @@ export const categoriesAPI = {
     const { data } = await api.get('/categories')
     return data
   },
+  create: async (payload) => {
+    const { data } = await api.post('/categories', payload)
+    return data
+  },
 }
+
 /* -------- Users API -------- */
-// Endpoints REST attendus côté Laravel:
-// GET    /users
-// POST   /users
-// PUT    /users/{id}
-// DELETE /users/{id}
-//
-// Optionnel: le GET /users peut accepter ?q=, ?role=, ?page=, ?per_page=.
-// On envoie quand même ces params; si le backend ne les gère pas,
-// on fera le filtrage côté client dans la page (fallback).
 export const usersAPI = {
   list: async (params = {}) => {
     const { data } = await api.get('/users', { params });
@@ -67,12 +65,10 @@ export const usersAPI = {
     return data?.data ?? data;
   },
   create: async (payload) => {
-    // payload: { name, email, role, password, password_confirmation? }
     const { data } = await api.post('/users', payload);
     return data?.data ?? data;
   },
   update: async (id, payload) => {
-    // payload: { name?, email?, role?, password? }
     const { data } = await api.put(`/users/${id}`, payload);
     return data?.data ?? data;
   },
@@ -81,12 +77,11 @@ export const usersAPI = {
     return data;
   },
 };
-// --- Admin Bookings API ---
+
+/* -------- Admin Bookings API -------- */
 export const adminBookingsAPI = {
-  // params: { branch_id?, session_id?, coach_id?, course_id?, is_for_women?, is_for_kids?, is_free?, date_from?, date_to?, q? }
   list: async (params = {}) => {
     const { data } = await api.get('/admin/bookings', { params });
-    // data = { success, filters, data: [...] }
     return data?.data ?? [];
   },
 };
@@ -117,28 +112,25 @@ export const machinesAPI = {
 
 /* -------- Charges API -------- */
 export const chargesAPI = {
-  // Récupère toutes les charges. Optionnellement avec params (ex: { machine_id })
   list: async (params = {}) => {
     const { data } = await api.get('/charges', { params })
     return data
   },
-  // Raccourci pour une machine
   listByMachine: async (machineId) => {
     const { data } = await api.get('/charges', { params: { machine_id: machineId } })
     return data
   },
-  // Crée une charge (attendue par backend: { name?, weight?, machine_id })
   create: async (payload) => {
     const { data } = await api.post('/charges', payload)
     return data
   },
-  // Supprime une charge par ID
   delete: async (id) => {
     const { data } = await api.delete(`/charges/${id}`)
     return data
   },
 }
-// Add these methods to your API service
+
+/* -------- Machine Charge API -------- */
 export const machineChargeAPI = {
   attach: (machineId, chargeId) => 
     api.post(`/machines/${machineId}/charges/${chargeId}`),
@@ -150,7 +142,38 @@ export const machineChargeAPI = {
     api.put(`/machines/${machineId}/charges`, { charge_ids: chargeIds })
 }
 
-
+/* -------- Paramètres API -------- */
+export const parametresAPI = {
+  list: async (params = {}) => {
+    const { data } = await api.get('/parametres', { params })
+    return data
+  },
+  public: async (groupe = null) => {
+    const params = groupe ? { groupe } : {}
+    const { data } = await api.get('/parametres/public', { params })
+    return data
+  },
+  get: async (cle) => {
+    const { data } = await api.get(`/parametres/${cle}`)
+    return data
+  },
+  createOrUpdate: async (payload) => {
+    const { data } = await api.post('/parametres', payload)
+    return data
+  },
+  update: async (id, payload) => {
+    const { data } = await api.put(`/parametres/${id}`, payload)
+    return data
+  },
+  delete: async (id) => {
+    const { data } = await api.delete(`/parametres/${id}`)
+    return data
+  },
+  bulkUpdate: async (parametres) => {
+    const { data } = await api.post('/parametres/bulk-update', { parametres })
+    return data
+  },
+}
 
 export const workoutsAPI = {
   list: () => api.get('/workouts').then(r => r.data),
@@ -167,5 +190,32 @@ export const sessionsAPI = {
   upcoming: () => api.get('/group-sessions/upcoming').then(r => r.data),
   available: () => api.get('/group-sessions/available').then(r => r.data),
 }
+// Replace your videosAPI with this:
 
+/* -------- Videos API -------- */
+export const videosAPI = {
+  // Get all videos
+  list: async () => {
+    const { data } = await api.get('/videos')
+    return data
+  },
+  
+  // Get videos by coach
+  listByCoach: async (coachId) => {
+    const { data } = await api.get(`/coaches/${coachId}/videos`)
+    return data
+  },
+  
+  // Create a new video
+  create: async (payload) => {
+    const { data } = await api.post('/videos', payload)
+    return data
+  },
+  
+  // Delete a video
+  delete: async (id) => {
+    const { data } = await api.delete(`/videos/${id}`)
+    return data
+  },
+}
 export default api

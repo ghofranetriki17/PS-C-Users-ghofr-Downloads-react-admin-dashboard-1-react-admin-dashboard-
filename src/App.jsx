@@ -7,8 +7,9 @@ import Sessions from './pages/Sessions.jsx'
 import Coaches from './pages/Coaches.jsx'
 import CoachAvailabilities from "./pages/CoachAvailabilities.jsx"
 import Settings from './pages/Settings.jsx'
+import Parametres from './pages/Parametres.jsx'
 import NotFound from './pages/NotFound.jsx'
-import Availabilities from './pages/Availabilities.jsx' // ✅ Import here
+import Availabilities from './pages/Availabilities.jsx'
 
 import Categories from './pages/Categories.jsx'
 import Promotions from './pages/Promotions.jsx'
@@ -23,6 +24,7 @@ import UserProgress from './pages/UserProgress.jsx'
 import Machines from './pages/Machines.jsx'
 import Movements from './pages/Movements.jsx'
 import Charges from './pages/Charges.jsx'
+import Videos from './pages/Videos.jsx'   // ✅ ajout
 
 import Auth from './pages/Auth.jsx'
 import AdminRoute from './routes/AdminRoute.jsx'
@@ -45,6 +47,7 @@ export default function App() {
             <Route path="promotions" element={<Promotions />} />
             <Route path="shop-items" element={<ShopItems />} />
             <Route path="benefits" element={<Benefits />} />
+            <Route path="videos" element={<Videos />} /> {/* ✅ ajout */}
 
             {/* Workouts */}
             <Route path="workouts" element={<Workouts />} />
@@ -73,10 +76,12 @@ export default function App() {
 
             {/* Coaches */}
             <Route path="coaches" element={<Coaches />} />
-<Route path="coach-availabilities" element={<CoachAvailabilities />} />
+            <Route path="coach-availabilities" element={<CoachAvailabilities />} />
 
             {/* Settings */}
             <Route path="settings" element={<Settings />} />
+            <Route path="parametres" element={<Parametres />} />
+
             <Route path="home" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFound />} />
           </Route>
