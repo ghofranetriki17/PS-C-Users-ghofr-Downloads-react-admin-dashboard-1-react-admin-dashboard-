@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import {
   usersAPI,
   adminBookingsAPI,
@@ -56,8 +56,23 @@ const startOfDay = (date = new Date()) => {
   return d
 }
 
+const normalizeDateInput = (value) => {
+  if (!value) return null
+  if (value instanceof Date) return value
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    // handle "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS"
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return `${trimmed}T00:00:00`
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/.test(trimmed)) return trimmed.replace(' ', 'T')
+    return trimmed
+  }
+  return value
+}
+
 const isoDay = (value) => {
-  const d = value instanceof Date ? value : new Date(value)
+  const parsed = normalizeDateInput(value)
+  if (!parsed) return null
+  const d = parsed instanceof Date ? parsed : new Date(parsed)
   if (Number.isNaN(d.getTime())) return null
   return d.toISOString().slice(0, 10)
 }
@@ -78,14 +93,17 @@ const resolveRange = (filter) => {
         : preset.from
         ? isoDay(preset.from(today))
         : null
-      const to = preset.to ? isoDay(preset.to(today)) : todayIso
+
+      const hasTo = Object.prototype.hasOwnProperty.call(preset, 'to')
+      const to = hasTo ? (preset.to ? isoDay(preset.to(today)) : null) : todayIso
+
       return { from, to, label: preset.label }
     }
   }
 
   const from = filter.from || null
-  const to = filter.to || todayIso
-  const label = from ? `${from} ? ${to}` : `Until ${to}`
+  const to = filter.to || null
+  const label = from ? `${from} to ${to || '∞'}` : to ? `Until ${to}` : 'All time'
   return { from, to, label }
 }
 
@@ -190,20 +208,24 @@ const computeStats = (users, branches, flatBookings, sessions, workouts) => {
 }
 
 const buildBookingsTrend = (flatBookings, range) => {
-  const to = range.to ? new Date(range.to) : startOfDay()
-  const from = range.from ? new Date(range.from) : (() => { const d = new Date(to); d.setDate(d.getDate() - 6); return d })()
+  const toDate = range.to ? new Date(range.to) : startOfDay()
+  const fromDate = range.from
+    ? new Date(range.from)
+    : (() => {
+        const d = new Date(toDate)
+        d.setDate(d.getDate() - 29)
+        return d
+      })()
 
   const dayMs = 24 * 60 * 60 * 1000
-  const totalDays = Math.max(0, Math.min(60, Math.round((to - from) / dayMs)))
+  const totalDays = Math.max(0, Math.min(120, Math.round((toDate - fromDate) / dayMs)))
   const series = []
 
   for (let i = 0; i <= totalDays; i++) {
-    const d = new Date(from)
+    const d = new Date(fromDate)
     d.setDate(d.getDate() + i)
     const key = isoDay(d)
-    const count = flatBookings.filter(
-      (b) => isWithinRange(b.bookedAt || b.sessionDate, key, key)
-    ).length
+    const count = flatBookings.filter((b) => isWithinRange(b.bookedAt || b.sessionDate, key, key)).length
 
     series.push({
       label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -211,8 +233,7 @@ const buildBookingsTrend = (flatBookings, range) => {
     })
   }
 
-  // fallback to avoid empty chart
-  return series.length ? series : [{ label: '�', bookings: 0 }]
+  return series.length ? series : [{ label: '-', bookings: 0 }]
 }
 
 const buildBranchLoad = (branches, flatBookings) => {
@@ -252,13 +273,13 @@ const buildSessionTimeline = (sessions) => {
 
   const days = Object.keys(grouped)
     .sort()
-    .slice(-14) // limit to keep the chart readable
+    .slice(-14)
     .map((iso) => ({
       date: new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       sessions: grouped[iso],
     }))
 
-  return days.length ? days : [{ date: '�', sessions: 0 }]
+  return days.length ? days : [{ date: '-', sessions: 0 }]
 }
 
 export default function Dashboard() {
@@ -273,7 +294,7 @@ export default function Dashboard() {
   const [upcoming, setUpcoming] = useState([])
   const [workouts, setWorkouts] = useState([])
 
-  const [dateFilter, setDateFilter] = useState({ preset: 'last30', from: '', to: '' })
+  const [dateFilter, setDateFilter] = useState({ preset: 'all', from: '', to: '' })
   const resolvedRange = useMemo(() => resolveRange(dateFilter), [dateFilter])
 
   const flatBookings = useMemo(() => flattenBookings(bookings), [bookings])
@@ -373,7 +394,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-400 uppercase tracking-wide">Dashboard</p>
-            <h1 className="text-2xl font-bold">Loading data�</h1>
+            <h1 className="text-2xl font-bold">Loading data…</h1>
           </div>
           <div className="h-10 w-10 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>
@@ -392,7 +413,7 @@ export default function Dashboard() {
         <div>
           <p className="text-sm text-gray-400 uppercase tracking-wide">Operations</p>
           <h1 className="text-2xl md:text-3xl font-bold">Fitness platform dashboard</h1>
-          <p className="text-gray-500 text-sm">Power BI�style filters across all widgets.</p>
+          <p className="text-gray-500 text-sm">Power BI–style filters across all widgets.</p>
         </div>
         <button
           onClick={loadDashboard}
@@ -400,7 +421,7 @@ export default function Dashboard() {
           disabled={refreshing}
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Refreshing�' : 'Refresh data'}
+          {refreshing ? 'Refreshing…' : 'Refresh data'}
         </button>
       </header>
 
@@ -581,16 +602,16 @@ export default function Dashboard() {
                             hour: '2-digit',
                             minute: '2-digit',
                           })
-                        : '�'}
+                        : '—'}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {s.branch?.name ?? 'Branch'} � {s.course?.name ?? 'Course'} � {s.coach?.name ?? 'Coach'}
+                      {s.branch?.name ?? 'Branch'} • {s.course?.name ?? 'Course'} • {s.coach?.name ?? 'Coach'}
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm text-gray-400">Capacity</div>
                     <div className="font-semibold">
-                      {s.users_count ?? 0}/{s.max_participants ?? '8'}
+                      {s.users_count ?? 0}/{s.max_participants ?? '∞'}
                     </div>
                   </div>
                 </div>
@@ -613,11 +634,11 @@ export default function Dashboard() {
                   <div className="flex justify-between items-center">
                     <div className="font-semibold text-sm">{a.sessionTitle ?? 'Session'}</div>
                     <div className="text-xs text-gray-400">
-                      {a.bookedAt ? new Date(a.bookedAt).toLocaleString() : '�'}
+                      {a.bookedAt ? new Date(a.bookedAt).toLocaleString() : '—'}
                     </div>
                   </div>
                   <div className="text-xs text-gray-400">
-                    {a.branchName} � {a.courseName ?? 'Course'} � {a.userName ?? 'Member'}
+                    {a.branchName} • {a.courseName ?? 'Course'} • {a.userName ?? 'Member'}
                   </div>
                 </div>
               ))

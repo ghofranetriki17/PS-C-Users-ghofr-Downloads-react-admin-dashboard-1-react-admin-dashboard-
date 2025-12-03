@@ -186,9 +186,11 @@ export const branchesAPI = {
 }
 
 export const sessionsAPI = {
-  list: () => api.get('/group-sessions').then(r => r.data),
-  upcoming: () => api.get('/group-sessions/upcoming').then(r => r.data),
-  available: () => api.get('/group-sessions/available').then(r => r.data),
+  list: () => api.get('/group-training-sessions').then(r => r.data),
+  // public route exposed in api.php -> Route::get('sessions/upcoming', ...)
+  upcoming: () => api.get('/sessions/upcoming').then(r => r.data),
+  // if you need availability, switch to the public filter endpoint instead of a protected one
+  available: () => api.get('/sessions/filter', { params: { is_free: true } }).then(r => r.data),
 }
 // Replace your videosAPI with this:
 
