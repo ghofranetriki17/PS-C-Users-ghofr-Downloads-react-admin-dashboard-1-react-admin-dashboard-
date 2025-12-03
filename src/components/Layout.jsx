@@ -9,10 +9,10 @@ export default function Layout() {
 
   useEffect(() => {
     const saved = localStorage.getItem('prefers-dark')
-    if (saved === 'true') {
-      setDark(true)
-      document.documentElement.classList.add('dark')
-    }
+    const prefersSystem = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    const shouldEnable = saved === null ? prefersSystem : saved === 'true'
+    setDark(shouldEnable)
+    document.documentElement.classList.toggle('dark', shouldEnable)
   }, [])
 
   const toggleDark = () => {

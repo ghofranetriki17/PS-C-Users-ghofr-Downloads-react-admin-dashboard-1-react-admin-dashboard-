@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 export default function AdminRoute() {
   const { user, loading } = useAuth()
 
-  if (loading) return <div className="p-6">Loading…</div>
+  if (loading) return <div className="p-6">Loading...</div>
 
   // Must be authenticated AND role === 'admin'
   if (!user) return <Navigate to="/auth" replace />

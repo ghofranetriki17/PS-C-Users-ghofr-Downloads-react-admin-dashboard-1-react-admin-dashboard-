@@ -60,7 +60,7 @@ const NAV = [
     ],
   },
 
-  // ✅ Ajout du menu Videos
+  // Added Videos menu
   { 
     label: 'Videos', 
     to: '/videos', 
@@ -68,7 +68,7 @@ const NAV = [
   },
 
   { 
-    label: 'Paramètres', 
+    label: 'Parametres', 
     to: '/parametres', 
     icon: <Sliders className="h-4 w-4" /> 
   },
@@ -99,8 +99,8 @@ export default function Sidebar({ open, onClose }) {
       className={({ isActive }) =>
         clsx(
           'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium',
-          'hover:bg-surface-700',
-          isActive && 'bg-surface-700 text-brand-400'
+          'hover:bg-gray-100 dark:hover:bg-surface-700',
+          isActive && 'bg-brand-50 text-brand-600 dark:bg-surface-700 dark:text-brand-400'
         )
       }
       end
@@ -121,12 +121,12 @@ export default function Sidebar({ open, onClose }) {
         className={clsx(
           'fixed z-40 md:static md:translate-x-0 md:w-64',
           'inset-y-0 left-0 w-72 p-3',
-          'bg-surface-800 border-r border-surface-600 text-gray-100',
+          'bg-white dark:bg-surface-900 border-r border-gray-200 dark:border-surface-600 text-gray-900 dark:text-gray-100',
           'transition-transform',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="h-14 px-2 flex items-center gap-2 border-b border-surface-600">
+        <div className="h-14 px-2 flex items-center gap-2 border-b border-gray-200 dark:border-surface-600">
           <div className="h-8 w-8 rounded-xl bg-brand-500/15 flex items-center justify-center text-brand-400">F</div>
           <div className="font-semibold">Fimo Fitness Admin</div>
         </div>
@@ -140,7 +140,7 @@ export default function Sidebar({ open, onClose }) {
               return (
                 <div key={item.label} className="px-2">
                   <button
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium hover:bg-surface-700"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-surface-700"
                     onClick={toggle}
                   >
                     <span className="flex items-center gap-2">

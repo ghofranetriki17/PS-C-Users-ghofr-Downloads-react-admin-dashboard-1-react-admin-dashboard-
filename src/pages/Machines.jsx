@@ -1,7 +1,7 @@
 // src/pages/Machines.jsx
 import { useEffect, useState, useMemo } from 'react'
 import { Plus, X, ChevronDown, ChevronUp, Edit, Trash2, Copy, Search, Image as ImageIcon } from 'lucide-react'
-import { machinesAPI, categoriesAPI, branchesAPI, chargesAPI, machineChargeAPI } from '../services/api'
+import api, { machinesAPI, categoriesAPI, branchesAPI, chargesAPI, machineChargeAPI, tokenService } from '../services/api'
 
 export default function Machines() {
   const [data, setData] = useState([])
@@ -216,25 +216,20 @@ export default function Machines() {
     try {
       setIsUploadingImage(true)
 
-      const res = await fetch('/api/upload-image', {
-        method: 'POST',
+      const { data } = await api.post('/upload-image', fd, {
         headers: {
-          ...(localStorage.getItem('token')
-            ? { Authorization: `Bearer ${localStorage.getItem('token')}` }
-            : {}),
+          'Content-Type': 'multipart/form-data',
+          ...(tokenService.get() ? { Authorization: `Bearer ${tokenService.get()}` } : {}),
         },
-        body: fd,
       })
 
-      const json = await res.json()
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.message || 'Upload failed')
-      }
+      const url = data?.data?.url ?? data?.url
+      if (!url) throw new Error(data?.message || 'Upload failed (no URL returned)')
 
-      setFormData(prev => ({ ...prev, image_url: json.data.url }))
+      setFormData(prev => ({ ...prev, image_url: url }))
     } catch (err) {
       console.error('Image upload error:', err)
-      alert('Erreur upload image : ' + (err?.message || ''))
+      alert('Erreur upload image : ' + (err?.response?.data?.message || err?.message || ''))
     } finally {
       setIsUploadingImage(false)
     }
@@ -384,7 +379,7 @@ export default function Machines() {
           placeholder="Rechercher une machine..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-surface-700 dark:bg-surface-800 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
@@ -403,12 +398,12 @@ export default function Machines() {
           </div>
         ) : (
           Object.entries(groupedMachines).map(([branchName, machines]) => (
-            <div key={branchName} className="bg-white rounded-lg shadow-sm border">
+            <div key={branchName} className="panel p-0">
               <button
                 onClick={() => toggleBranch(branchName)}
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50"
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 dark:hover:bg-surface-800"
               >
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {branchName} ({machines.length} machine{machines.length > 1 ? 's' : ''})
                 </h2>
                 {expandedBranches[branchName] ? (
@@ -422,22 +417,22 @@ export default function Machines() {
                 <div className="border-t">
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-gray-50 dark:bg-surface-800">
                         <tr>
-                          <th className="text-left px-4 py-3 font-medium text-gray-900">ID</th>
-                          <th className="text-left px-4 py-3 font-medium text-gray-900">Image</th>
-                          <th className="text-left px-4 py-3 font-medium text-gray-900">Nom</th>
-                          <th className="text-left px-4 py-3 font-medium text-gray-900">Type</th>
-                          <th className="text-left px-4 py-3 font-medium text-gray-900">Description</th>
-                          <th className="text-left px-4 py-3 font-medium text-gray-900">Catégories</th>
-                          <th className="text-left px-4 py-3 font-medium text-gray-900">Charges</th>
-                          <th className="text-left px-4 py-3 font-medium text-gray-900">Actions</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-900 dark:text-gray-100">ID</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-900 dark:text-gray-100">Image</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-900 dark:text-gray-100">Nom</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-900 dark:text-gray-100">Type</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-900 dark:text-gray-100">Description</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-900 dark:text-gray-100">Catégories</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-900 dark:text-gray-100">Charges</th>
+                          <th className="text-left px-4 py-3 font-medium text-gray-900 dark:text-gray-100">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-gray-200 dark:divide-surface-700">
                         {machines.map(machine => (
-                          <tr key={machine.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-gray-900">{machine.id}</td>
+                          <tr key={machine.id} className="hover:bg-gray-50 dark:hover:bg-surface-800">
+                            <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{machine.id}</td>
                             <td className="px-4 py-3">
                               {machine.image_url ? (
                                 <img
@@ -451,9 +446,9 @@ export default function Machines() {
                                 </div>
                               )}
                             </td>
-                            <td className="px-4 py-3 font-medium text-gray-900">{machine.name}</td>
-                            <td className="px-4 py-3 text-gray-600">{machine.type || '-'}</td>
-                            <td className="px-4 py-3 text-gray-600">
+                            <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{machine.name}</td>
+                            <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{machine.type || '-'}</td>
+                            <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
                               {machine.description ? (
                                 machine.description.length > 50
                                   ? machine.description.substring(0, 50) + '...'
@@ -466,7 +461,7 @@ export default function Machines() {
                                   {machine.categories.map(category => (
                                     <span
                                       key={category.id}
-                                      className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
+                                      className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 rounded-full"
                                     >
                                       {category.name}
                                     </span>
@@ -480,7 +475,7 @@ export default function Machines() {
                                   {machine.charges.slice(0, 5).map((c) => (
                                     <span
                                       key={c.id}
-                                      className="inline-block px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-800 rounded-full"
+                                      className="inline-block px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200 rounded-full"
                                     >
                                       {c.weight != null ? `${c.weight} kg` : (c.name || '—')}
                                     </span>
@@ -524,10 +519,10 @@ export default function Machines() {
       {/* Duplicate Modal */}
       {showDuplicateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-md">
+          <div className="panel w-full max-w-md p-0">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Dupliquer une machine</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Dupliquer une machine</h2>
                 <button onClick={() => setShowDuplicateModal(false)} className="text-gray-400 hover:text-gray-600">
                   <X className="w-6 h-6" />
                 </button>
@@ -585,10 +580,10 @@ export default function Machines() {
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   {editingMachine ? 'Modifier la machine' : 'Ajouter une nouvelle machine'}
                 </h2>
                 <button onClick={() => { setShowForm(false); resetForm() }} className="text-gray-400 hover:text-gray-600">

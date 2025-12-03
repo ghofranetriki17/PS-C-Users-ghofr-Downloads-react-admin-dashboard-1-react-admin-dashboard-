@@ -281,7 +281,7 @@ function Modal({ title, onClose, children }) {
       <div className="relative bg-surface-800 p-5 rounded-xl border border-surface-600 w-full max-w-md">
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-bold">{title}</h3>
-          <button onClick={onClose} className="hover:opacity-80">✕</button>
+          <button onClick={onClose} className="hover:opacity-80">×</button>
         </div>
         {children}
       </div>
